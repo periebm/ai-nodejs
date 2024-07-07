@@ -31,7 +31,7 @@ class OpenApiController {
     try {
       const openApiService = new OpenApiService(healthCheckRepository);
 
-      const response = await openApiService.promptTemplates();
+      const response = await openApiService.outputParsers();
       return res.send(response);
     } catch (error) {
       console.error(error);
