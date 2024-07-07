@@ -55,7 +55,7 @@ class OpenApiController {
     try {
       const openApiService = new OpenApiService(healthCheckRepository);
 
-      const response = await openApiService.retrievalChain();
+      const response = await openApiService.chatHistory();
       return res.send(response);
     } catch (error) {
       console.error(error);

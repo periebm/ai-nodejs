@@ -9,6 +9,9 @@ import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { MemoryVectorStore } from 'langchain/vectorstores/memory';
 import { createRetrievalChain } from 'langchain/chains/retrieval';
+import { AIMessage, HumanMessage } from '@langchain/core/messages';
+import { MessagesPlaceholder } from '@langchain/core/prompts';
+import { createHistoryAwareRetriever } from 'langchain/chains/history_aware_retriever';
 export class OpenApiService {
   constructor(private repository: IOpenApiRepository) {}
 
@@ -71,6 +74,70 @@ export class OpenApiService {
     });
 
     return response;
+  }
+
+  private async createVectorStore() {
+    const loader = new CheerioWebBaseLoader(
+      'https://js.langchain.com/v0.1/docs/expression_language/',
+    );
+    const docs = await loader.load();
+
+    const splitter = new RecursiveCharacterTextSplitter({
+      chunkSize: 200, //amount of chars per chunk
+      chunkOverlap: 20,
+    });
+
+    const splitDocs = await splitter.splitDocuments(docs); //this returns an array of parts of the splitted documents;
+
+    const embeddings = new OpenAIEmbeddings();
+
+    const vectorStore = await MemoryVectorStore.fromDocuments(splitDocs, embeddings);
+
+    return vectorStore;
+  }
+
+  private async createChain(vectorStore: MemoryVectorStore) {
+    const model = new ChatOpenAI({
+      modelName: 'gpt-3.5-turbo',
+      temperature: 0.7,
+    });
+
+    const prompt = ChatPromptTemplate.fromMessages([
+      ['system', 'Answer the user question based on the following context: {context}'],
+      new MessagesPlaceholder('chat_history'),
+      ['user', '{input}'],
+    ]);
+
+    //Loader
+
+    const chain = await createStuffDocumentsChain({
+      llm: model,
+      prompt,
+    });
+
+    //Retrieving the Data
+    const retriever = vectorStore.asRetriever({
+      k: 2,
+    });
+
+    const retrieverPrompt = ChatPromptTemplate.fromMessages([
+      new MessagesPlaceholder('chat_history'), 
+      ['user', '{input}'],
+      ['user', 'Given the above conversation, generate a search query to look up in order to get information relevant to the conversation']
+    ])
+
+    const historyAwareRetriever = await createHistoryAwareRetriever({
+      llm: model,
+      retriever,
+      rephrasePrompt: retrieverPrompt,
+    });
+
+    const conversationChain = await createRetrievalChain({
+      combineDocsChain: chain,
+      retriever: historyAwareRetriever,
+    });
+
+    return conversationChain;
   }
 
   public async chatOne() {
@@ -170,59 +237,28 @@ export class OpenApiService {
 
     const response = await retrievalChain.invoke({
       input: 'What is LCEL? M',
-      context: docs,
     });
 
     console.log(response);
   }
 
   public async chatHistory() {
-    const model = new ChatOpenAI({
-      modelName: 'gpt-3.5-turbo',
-      temperature: 0.7,
-    });
+    const vectorStore = await this.createVectorStore();
+    const chain = await this.createChain(vectorStore);
 
-    const prompt = ChatPromptTemplate.fromTemplate(`
-        Answer the user's question.
-        Context: {context}
-        Question: {input}
-      `);
+    //Chat History
+    const chatHistory = [
+      new HumanMessage('Hello'),
+      new AIMessage('Hi, how can I help you?'),
+      new HumanMessage('My name is Ashley'),
+      new AIMessage('Hi Ashley, how can I help?'),
+      new HumanMessage('What is LCEL?'),
+      new AIMessage('LCEL stands for Langchain Expression Language'),
+    ];
 
-    //Loader
-    const loader = new CheerioWebBaseLoader(
-      'https://js.langchain.com/v0.1/docs/expression_language/',
-    );
-    const docs = await loader.load();
-
-    const splitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 200, //amount of chars per chunk
-      chunkOverlap: 20,
-    });
-
-    const splitDocs = await splitter.splitDocuments(docs); //this returns an array of parts of the splitted documents;
-
-    const embeddings = new OpenAIEmbeddings();
-
-    const vectorStore = await MemoryVectorStore.fromDocuments(splitDocs, embeddings);
-
-    const chain = await createStuffDocumentsChain({
-      llm: model,
-      prompt,
-    });
-
-    //Retrieving the Data
-    const retriever = vectorStore.asRetriever({
-      k: 2,
-    });
-
-    const retrievalChain = await createRetrievalChain({
-      combineDocsChain: chain,
-      retriever,
-    });
-
-    const response = await retrievalChain.invoke({
-      input: 'What is LCEL? M',
-      context: docs,
+    const response = await chain.invoke({
+      input: 'What is it?',
+      chat_history: chatHistory,
     });
 
     console.log(response);
