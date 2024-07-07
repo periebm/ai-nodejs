@@ -12,7 +12,7 @@ import { createRetrievalChain } from 'langchain/chains/retrieval';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { MessagesPlaceholder } from '@langchain/core/prompts';
 import { createHistoryAwareRetriever } from 'langchain/chains/history_aware_retriever';
-export class OpenApiService {
+export class ChainService {
   constructor(private repository: IOpenApiRepository) {}
 
   private async callStringOutputParser(model: ChatOpenAI<ChatOpenAICallOptions>) {

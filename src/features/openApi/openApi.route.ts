@@ -8,5 +8,6 @@ openApiRouter.get('/promptTemplates', openApiController.promptTemplates);
 openApiRouter.get('/outputParsers', openApiController.outputParsers);
 openApiRouter.get('/retrievalChain', openApiController.retrievalChain);
 openApiRouter.get('/chatHistory', openApiController.chatHistory);
+openApiRouter.get('/agentOne', openApiController.agentOne);
 
 export default openApiRouter;
