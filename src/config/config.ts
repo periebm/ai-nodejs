@@ -11,9 +11,10 @@ dotenv.config({ path });
 const envSchema = Joi.object({
   NODE_ENV: Joi.string().required(),
   PORT: Joi.number().default(3005),
+  OPEN_AI_KEY: Joi.string().required(),
 }).unknown(true);
 
-const {error, value: envVars} = envSchema.validate(process.env);
+const { error, value: envVars } = envSchema.validate(process.env);
 
 if (error) {
   throw new Error(`Enviroment Variable Remaining: ${error.message}`);
@@ -22,4 +23,7 @@ if (error) {
 export const envConfig = {
   env: envVars.NODE_ENV,
   port: envVars.PORT,
-}
+  openAI: {
+    key: envVars.OPEN_AI_KEY,
+  },
+};
