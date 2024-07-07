@@ -38,6 +38,30 @@ class OpenApiController {
       next(error);
     }
   }
+
+  public async retrievalChain(req: Request, res: Response, next: NextFunction) {
+    try {
+      const openApiService = new OpenApiService(healthCheckRepository);
+
+      const response = await openApiService.retrievalChain();
+      return res.send(response);
+    } catch (error) {
+      console.error(error);
+      next(error);
+    }
+  }
+
+  public async chatHistory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const openApiService = new OpenApiService(healthCheckRepository);
+
+      const response = await openApiService.retrievalChain();
+      return res.send(response);
+    } catch (error) {
+      console.error(error);
+      next(error);
+    }
+  }
 }
 
 const openApiController = new OpenApiController();

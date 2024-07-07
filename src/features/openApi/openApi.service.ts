@@ -3,6 +3,12 @@ import { ChatOpenAI, ChatOpenAICallOptions } from '@langchain/openai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import { StringOutputParser, CommaSeparatedListOutputParser } from '@langchain/core/output_parsers';
 import { StructuredOutputParser } from '@langchain/core/output_parsers';
+import { createStuffDocumentsChain } from 'langchain/chains/combine_documents';
+import { CheerioWebBaseLoader } from '@langchain/community/document_loaders/web/cheerio';
+import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
+import { OpenAIEmbeddings } from '@langchain/openai';
+import { MemoryVectorStore } from 'langchain/vectorstores/memory';
+import { createRetrievalChain } from 'langchain/chains/retrieval';
 export class OpenApiService {
   constructor(private repository: IOpenApiRepository) {}
 
@@ -27,7 +33,7 @@ export class OpenApiService {
 
   private async callListOutputParser(model: ChatOpenAI<ChatOpenAICallOptions>) {
     const prompt = ChatPromptTemplate.fromTemplate(
-      'Provide 5 synonyms, seperated by commas, for the following word {word}'
+      'Provide 5 synonyms, seperated by commas, for the following word {word}',
     );
 
     // Create Parser
@@ -47,20 +53,21 @@ export class OpenApiService {
     const prompt = ChatPromptTemplate.fromTemplate(
       `Extract information from the following phrase.
       Formatting instructions: {format_instructions}
-      Phrase: {phrase}`
+      Phrase: {phrase}`,
     );
 
     // Create Parser
     const outputParser = StructuredOutputParser.fromNamesAndDescriptions({
-      name: "the name of the person",
-      age: "the age of the person"
+      name: 'the name of the person',
+      age: 'the age of the person',
     });
 
     // Create Chain
     const chain = prompt.pipe(model).pipe(outputParser);
 
     const response = await chain.invoke({
-      phrase: 'max is 30 years old', format_instructions: outputParser.getFormatInstructions()
+      phrase: 'max is 30 years old',
+      format_instructions: outputParser.getFormatInstructions(),
     });
 
     return response;
@@ -113,6 +120,110 @@ export class OpenApiService {
     //const response = await this.callStringOutputParser(model);
     //const response = await this.callListOutputParser(model);
     const response = await this.callStructuredOutputParser(model);
+
+    console.log(response);
+  }
+
+  public async retrievalChain() {
+    const model = new ChatOpenAI({
+      modelName: 'gpt-3.5-turbo',
+      temperature: 0.7,
+    });
+
+    const prompt = ChatPromptTemplate.fromTemplate(`
+        Answer the user's question.
+        Context: {context}
+        Question: {input}
+      `);
+
+    //Loader
+    const loader = new CheerioWebBaseLoader(
+      'https://js.langchain.com/v0.1/docs/expression_language/',
+    );
+    const docs = await loader.load();
+
+    const splitter = new RecursiveCharacterTextSplitter({
+      chunkSize: 200, //amount of chars per chunk
+      chunkOverlap: 20,
+    });
+
+    const splitDocs = await splitter.splitDocuments(docs); //this returns an array of parts of the splitted documents;
+
+    const embeddings = new OpenAIEmbeddings();
+
+    const vectorStore = await MemoryVectorStore.fromDocuments(splitDocs, embeddings);
+
+    const chain = await createStuffDocumentsChain({
+      llm: model,
+      prompt,
+    });
+
+    //Retrieving the Data
+    const retriever = vectorStore.asRetriever({
+      k: 2,
+    });
+
+    const retrievalChain = await createRetrievalChain({
+      combineDocsChain: chain,
+      retriever,
+    });
+
+    const response = await retrievalChain.invoke({
+      input: 'What is LCEL? M',
+      context: docs,
+    });
+
+    console.log(response);
+  }
+
+  public async chatHistory() {
+    const model = new ChatOpenAI({
+      modelName: 'gpt-3.5-turbo',
+      temperature: 0.7,
+    });
+
+    const prompt = ChatPromptTemplate.fromTemplate(`
+        Answer the user's question.
+        Context: {context}
+        Question: {input}
+      `);
+
+    //Loader
+    const loader = new CheerioWebBaseLoader(
+      'https://js.langchain.com/v0.1/docs/expression_language/',
+    );
+    const docs = await loader.load();
+
+    const splitter = new RecursiveCharacterTextSplitter({
+      chunkSize: 200, //amount of chars per chunk
+      chunkOverlap: 20,
+    });
+
+    const splitDocs = await splitter.splitDocuments(docs); //this returns an array of parts of the splitted documents;
+
+    const embeddings = new OpenAIEmbeddings();
+
+    const vectorStore = await MemoryVectorStore.fromDocuments(splitDocs, embeddings);
+
+    const chain = await createStuffDocumentsChain({
+      llm: model,
+      prompt,
+    });
+
+    //Retrieving the Data
+    const retriever = vectorStore.asRetriever({
+      k: 2,
+    });
+
+    const retrievalChain = await createRetrievalChain({
+      combineDocsChain: chain,
+      retriever,
+    });
+
+    const response = await retrievalChain.invoke({
+      input: 'What is LCEL? M',
+      context: docs,
+    });
 
     console.log(response);
   }

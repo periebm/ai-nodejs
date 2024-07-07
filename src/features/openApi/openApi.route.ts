@@ -1,10 +1,12 @@
 import { Router } from 'express';
-import healthCheckController from './openApi.controller';
+import openApiController from './openApi.controller';
 
 const openApiRouter: Router = Router();
 
-openApiRouter.get('/chatModel', healthCheckController.chatOne);
-openApiRouter.get('/promptTemplates', healthCheckController.promptTemplates);
-openApiRouter.get('/outputParsers', healthCheckController.outputParsers);
+openApiRouter.get('/chatModel', openApiController.chatOne);
+openApiRouter.get('/promptTemplates', openApiController.promptTemplates);
+openApiRouter.get('/outputParsers', openApiController.outputParsers);
+openApiRouter.get('/retrievalChain', openApiController.retrievalChain);
+openApiRouter.get('/chatHistory', openApiController.chatHistory);
 
 export default openApiRouter;
