@@ -12,6 +12,7 @@ const envSchema = Joi.object({
   NODE_ENV: Joi.string().required(),
   PORT: Joi.number().default(3005),
   OPENAI_API_KEY: Joi.string().required(),
+  DATABASE_URL: Joi.string().required(),
 }).unknown(true);
 
 const { error, value: envVars } = envSchema.validate(process.env);
@@ -26,4 +27,7 @@ export const envConfig = {
   openAI: {
     key: envVars.OPENAI_API_KEY,
   },
+  database: {
+    connectionString: envVars.DATABASE_URL
+  }
 };

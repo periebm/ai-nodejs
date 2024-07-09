@@ -1,3 +1,3 @@
 export interface IOpenApiRepository {
-  oracleHealth():Promise<number | undefined>;
+  databaseHealth():Promise<number | undefined>;
 }

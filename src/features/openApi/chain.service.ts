@@ -12,6 +12,10 @@ import { createRetrievalChain } from 'langchain/chains/retrieval';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { MessagesPlaceholder } from '@langchain/core/prompts';
 import { createHistoryAwareRetriever } from 'langchain/chains/history_aware_retriever';
+import { ConversationChain } from 'langchain/chains';
+//Memory Imports
+import { BufferMemory } from 'langchain/memory';
+
 export class ChainService {
   constructor(private repository: IOpenApiRepository) {}
 
@@ -121,10 +125,13 @@ export class ChainService {
     });
 
     const retrieverPrompt = ChatPromptTemplate.fromMessages([
-      new MessagesPlaceholder('chat_history'), 
+      new MessagesPlaceholder('chat_history'),
       ['user', '{input}'],
-      ['user', 'Given the above conversation, generate a search query to look up in order to get information relevant to the conversation']
-    ])
+      [
+        'user',
+        'Given the above conversation, generate a search query to look up in order to get information relevant to the conversation',
+      ],
+    ]);
 
     const historyAwareRetriever = await createHistoryAwareRetriever({
       llm: model,
@@ -260,6 +267,41 @@ export class ChainService {
       input: 'What is it?',
       chat_history: chatHistory,
     });
+
+    console.log(response);
+  }
+
+  public async chatMemory() {
+    const model = new ChatOpenAI({
+      modelName: 'gpt-3.5-turbo',
+      temperature: 0.7,
+    });
+
+    const prompt = ChatPromptTemplate.fromTemplate(`
+        You are an AI assistant.
+        History: {history}
+        Question: {input}
+      `);
+
+    const memory = new BufferMemory({
+      memoryKey: 'history',
+    });
+
+    //Using the Chain Classes
+    const chain = new ConversationChain({
+      llm: model,
+      prompt,
+      memory,
+    });
+
+    // Using LCEL
+    // const chain = prompt.pipe(model);
+
+    const inputs = {
+      input: 'Hello there',
+    };
+
+    const response = await chain.invoke(inputs);
 
     console.log(response);
   }

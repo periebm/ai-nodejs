@@ -18,7 +18,7 @@ export class HealthCheckService {
     var uptime = this.formatUpTime(process.uptime());
 
     const startTimeDatabase = new Date().getTime();
-    const databaseHealth = await this.repository.oracleHealth();
+    const databaseHealth = await this.repository.databaseHealth();
     const endTimeDatabase = new Date().getTime();
 
     const databaseDbStatus = !databaseHealth

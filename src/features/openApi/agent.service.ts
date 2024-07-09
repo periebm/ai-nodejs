@@ -1,17 +1,12 @@
 import { IOpenApiRepository } from './openApi.repository';
-import { ChatOpenAI, ChatOpenAICallOptions } from '@langchain/openai';
+import { ChatOpenAI} from '@langchain/openai';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { StringOutputParser, CommaSeparatedListOutputParser } from '@langchain/core/output_parsers';
-import { StructuredOutputParser } from '@langchain/core/output_parsers';
-import { createStuffDocumentsChain } from 'langchain/chains/combine_documents';
 import { CheerioWebBaseLoader } from '@langchain/community/document_loaders/web/cheerio';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { MemoryVectorStore } from 'langchain/vectorstores/memory';
-import { createRetrievalChain } from 'langchain/chains/retrieval';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { MessagesPlaceholder } from '@langchain/core/prompts';
-import { createHistoryAwareRetriever } from 'langchain/chains/history_aware_retriever';
 import { createOpenAIFunctionsAgent, AgentExecutor } from 'langchain/agents';
 import { TavilySearchResults } from '@langchain/community/tools/tavily_search';
 import  { createInterface } from 'readline';

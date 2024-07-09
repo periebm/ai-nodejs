@@ -1,32 +1,16 @@
+import { db } from '../config/database';
 import { IHealthCheckRepository } from '../features/healthCheck/IHealthCheck.repository';
 
 class HealthCheckRepository implements IHealthCheckRepository {
-/*   private async init() {
-    const conn = new DatabaseConnection();
-    const pool = await conn.connectWithDB();
-    const release = conn.doRelease;
-    return {
-      pool,
-      release,
-    };
-  }
- */
-  async oracleHealth(): Promise<number | undefined> {
-    return 1;
-/*     const { pool, release } = await this.init();
-
+  async databaseHealth(): Promise<number | undefined> {
     try {
-      const response = await pool.execute(`
-            SELECT 1 FROM DUAL
-            `);
-      release(pool);
-
-      return response?.rows;
+      const response = await db.query('SELECT 1');
+      console.log(response?.rows[0]);
+      return response?.rows[0];
     } catch (error) {
-      release(pool);
-      console.log(error);
+      console.error('Erro ao fazer a consulta de health check:', error);
       return undefined;
-    } */
+    }
   }
 }
 

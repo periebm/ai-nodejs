@@ -75,6 +75,18 @@ class OpenApiController {
       next(error);
     }
   }
+
+  public async chatMemory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const chainService = new ChainService(healthCheckRepository);
+
+      const response = await chainService.chatMemory();
+      return res.send(response);
+    } catch (error) {
+      console.error(error);
+      next(error);
+    }
+  }
 }
 
 const openApiController = new OpenApiController();
