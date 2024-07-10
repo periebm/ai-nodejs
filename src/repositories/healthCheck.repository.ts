@@ -1,10 +1,10 @@
-import { db } from '../config/database';
+import { database } from '../config/database';
 import { IHealthCheckRepository } from '../features/healthCheck/IHealthCheck.repository';
 
 class HealthCheckRepository implements IHealthCheckRepository {
   async databaseHealth(): Promise<number | undefined> {
     try {
-      const response = await db.query('SELECT 1');
+      const response = await database.query('SELECT 1');
       console.log(response?.rows[0]);
       return response?.rows[0];
     } catch (error) {

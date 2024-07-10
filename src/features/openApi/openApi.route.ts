@@ -9,6 +9,6 @@ openApiRouter.get('/outputParsers', openApiController.outputParsers);
 openApiRouter.get('/retrievalChain', openApiController.retrievalChain);
 openApiRouter.get('/chatHistory', openApiController.chatHistory);
 openApiRouter.get('/agentOne', openApiController.agentOne);
-openApiRouter.get('/chatMemory', openApiController.chatMemory);
+openApiRouter.post('/chatMemory', openApiController.chatMemory);
 
 export default openApiRouter;

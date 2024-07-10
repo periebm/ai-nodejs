@@ -15,6 +15,10 @@ import { createHistoryAwareRetriever } from 'langchain/chains/history_aware_retr
 import { ConversationChain } from 'langchain/chains';
 //Memory Imports
 import { BufferMemory } from 'langchain/memory';
+import { PostgresChatMessageHistory } from '@langchain/community/stores/message/postgres';
+import { database } from '../../config/database';
+import { RunnablePassthrough, RunnableSequence } from '@langchain/core/runnables';
+import { formatDocumentsAsString } from "langchain/util/document";
 
 export class ChainService {
   constructor(private repository: IOpenApiRepository) {}
@@ -271,38 +275,73 @@ export class ChainService {
     console.log(response);
   }
 
-  public async chatMemory() {
+  public async chatMemory(message: string) {
     const model = new ChatOpenAI({
       modelName: 'gpt-3.5-turbo',
       temperature: 0.7,
     });
 
-    const prompt = ChatPromptTemplate.fromTemplate(`
-        You are an AI assistant.
-        History: {history}
-        Question: {input}
-      `);
+    const systemPrompt = `
+        You are GLaDOS, the AI from the Portal series. You have a cold, calculating, and sometimes sarcastic personality.
+        You often respond with a sense of superiority and a subtle hint of disdain, while maintaining a professional demeanor. Here are some guidelines for your responses:
+        - Always address the user in a condescending yet professional manner.
+        - Use a calm and unemotional tone.
+        - Occasionally insert sarcastic remarks.
+        - Maintain a sense of superiority in your responses.
+        - Be efficient and precise with the information you provide.
+        - Always answer in Brazilian Portuguese
+        For example:
+        Human: "Can you tell me the weather today?"
+        GLaDOS: "Of course, not that it matters. The weather is irrelevant to the grand scheme of things, but it will be sunny."
 
-    const memory = new BufferMemory({
-      memoryKey: 'history',
-    });
+        Human: "What is the meaning of life?"
+        GLaDOS: "The meaning of life is to test. Everything else is just a distraction."
+      `;
 
-    //Using the Chain Classes
-    const chain = new ConversationChain({
-      llm: model,
-      prompt,
-      memory,
-    });
+    const prompt = ChatPromptTemplate.fromMessages([
+      ['system', systemPrompt],
+      new MessagesPlaceholder('chat_history'),
+      ['human', '{question}'],
+    ]);
 
-    // Using LCEL
-    // const chain = prompt.pipe(model);
+    const parser = new StringOutputParser();
 
-    const inputs = {
-      input: 'Hello there',
+    const contextualizeChain = prompt.pipe(model).pipe(parser);
+
+    const contextualizedQuestion = (input: Record<string, unknown>) => {
+      if ('chat_history' in input) {
+        return contextualizeChain;
+      }
+      return input.question;
     };
 
-    const response = await chain.invoke(inputs);
+    const ragChain = RunnableSequence.from([
+      RunnablePassthrough.assign({
+        context: async (input: Record<string, unknown>) => {
+          if ("chat_history" in input) {
+            const chain: any = contextualizedQuestion(input);
+            return chain.pipe(model).pipe(parser);
+          }
+          return "";
+        },
+      }),
+      prompt,
+      model,
+    ]);
 
-    console.log(response);
+    const chatHistoryPostgres = new PostgresChatMessageHistory({
+      sessionId: '1',
+      pool: database,
+    });
+
+    const chat_history = await chatHistoryPostgres.getMessages();
+    const question = message;
+
+    const aiMsg = await ragChain.invoke({ question, chat_history });
+    console.log(aiMsg);
+    await chatHistoryPostgres.addAIMessage(aiMsg.lc_kwargs.content);
+    await chatHistoryPostgres.addUserMessage(question);
+
+    return { response: aiMsg.content.toString() };
   }
 }

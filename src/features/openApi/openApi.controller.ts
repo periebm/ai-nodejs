@@ -77,10 +77,12 @@ class OpenApiController {
   }
 
   public async chatMemory(req: Request, res: Response, next: NextFunction) {
+    const { message } = req.body;
+
     try {
       const chainService = new ChainService(healthCheckRepository);
 
-      const response = await chainService.chatMemory();
+      const response = await chainService.chatMemory(message);
       return res.send(response);
     } catch (error) {
       console.error(error);

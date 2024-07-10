@@ -9,6 +9,11 @@ const configDatabase = {
   connectionString: envConfig.database.connectionString
 }
 
+export const closeDatabase = async () => {
+  await database.end();
+  console.log("Pool de conexões fechada.");
+};
+
 /* if (process.env.MODE === "prod") configDatabase.ssl = true
  */
-export const db = new Pool(configDatabase)
+export const database = new Pool(configDatabase)
