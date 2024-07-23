@@ -247,7 +247,7 @@ export class ChainService {
     });
 
     const response = await retrievalChain.invoke({
-      input: 'What is LCEL? M',
+      input: 'What is LCEL?',
     });
 
     console.log(response);
@@ -338,7 +338,6 @@ export class ChainService {
     const question = message;
 
     const aiMsg = await ragChain.invoke({ question, chat_history });
-    console.log(aiMsg);
     await chatHistoryPostgres.addAIMessage(aiMsg.lc_kwargs.content);
     await chatHistoryPostgres.addUserMessage(question);
 
