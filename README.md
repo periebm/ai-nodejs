@@ -1,2 +1,2 @@
 # ai-nodejs
-Project using AI with Node.js
+Tinkering with AI with Node.js
